@@ -12,22 +12,37 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang make cmake git unzip wget jq
+          sudo apt-get install -y clang make cmake git unzip wget curl
 
-      - name: Download OpenOrbis SDK (Dynamic API)
+      - name: Download OpenOrbis SDK
         run: |
           mkdir -p $HOME/OO_PS4_TOOLCHAIN
           cd $HOME/OO_PS4_TOOLCHAIN
           
-          # Demande à l'API GitHub de trouver automatiquement l'URL du dernier ZIP
-          ASSET_URL=$(curl -s https://api.github.com/repos/OpenOrbis/OpenOrbis-PS4-Toolchain/releases | jq -r '.[].assets[] | select(.name | endswith(".zip")) | .browser_download_url' | head -n 1)
+          echo "Recherche du SDK OpenOrbis..."
+          # Cherche spécifiquement l'archive Windows (.zip) qui contient les headers compilés
+          ZIP_URL=$(curl -s https://api.github.com/repos/OpenOrbis/OpenOrbis-PS4-Toolchain/releases | grep "browser_download_url" | grep -i "windows" | grep -i "\.zip" | head -n 1 | cut -d '"' -f 4)
           
-          echo "Fichier trouvé ! Téléchargement depuis : $ASSET_URL"
-          wget -qO toolchain.zip "$ASSET_URL"
+          if [ -z "$ZIP_URL" ]; then
+            echo "Erreur : URL du SDK introuvable."
+            exit 1
+          fi
+          
+          echo "Fichier trouvé ! Téléchargement depuis : $ZIP_URL"
+          wget -qO toolchain.zip "$ZIP_URL"
+          
+          echo "Extraction du SDK..."
           unzip -q toolchain.zip
           
-          # Trouve dynamiquement le bon dossier d'installation du SDK
+          # Cherche le dossier "include" pour configurer la variable d'environnement
           TOOL_PATH=$(find $PWD -type d -name "include" | head -n 1 | sed 's|/include||')
+          
+          if [ -z "$TOOL_PATH" ]; then
+            echo "Erreur : Dossier 'include' introuvable dans l'archive extraite."
+            exit 1
+          fi
+          
+          echo "SDK correctement configuré dans : $TOOL_PATH"
           echo "OO_PS4_TOOLCHAIN=$TOOL_PATH" >> $GITHUB_ENV
 
       - name: Build SPRX
