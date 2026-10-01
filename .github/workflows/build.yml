@@ -12,7 +12,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang make cmake git
+          sudo apt-get install -y clang make cmake git build-essential gcc-multilib
 
       - name: Download OpenOrbis SDK
         run: |
@@ -21,8 +21,7 @@ jobs:
 
       - name: Build SPRX
         run: |
-          export OO_PS4_TOOLCHAIN=$HOME/OO_PS4_TOOLCHAIN
-          make
+          make OO_PS4_TOOLCHAIN=$HOME/OO_PS4_TOOLCHAIN
 
       - name: Upload SPRX
         uses: actions/upload-artifact@v4
