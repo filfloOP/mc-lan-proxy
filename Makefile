@@ -1,12 +1,34 @@
 OO_PS4_TOOLCHAIN ?= $(HOME)/OO_PS4_TOOLCHAIN
 
-Target := mc_lan_proxy.sprx
-Compiler := clang++
-Flags := -O2 -target x86_64-scei-ps4 -fPIC -shared \
-         -I$(OO_PS4_TOOLCHAIN)/include \
-         -I$(OO_PS4_TOOLCHAIN)/include/c++/v1 \
-         -L$(OO_PS4_TOOLCHAIN)/lib \
-         -lSceLibcInternal -lkernel -lSceNet
+TARGET := mc_lan_proxy
 
-all:
-	$(Compiler) $(Flags) main.cpp -o $(Target)
+CXX := clang++
+LD  := ld.lld
+
+CXXFLAGS := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables -O2 \
+            -fno-exceptions -fno-rtti -std=c++17 -c \
+            -isysroot $(OO_PS4_TOOLCHAIN) \
+            -isystem $(OO_PS4_TOOLCHAIN)/include \
+            -isystem $(OO_PS4_TOOLCHAIN)/include/c++/v1
+
+LDFLAGS := -m elf_x86_64 -pie --script $(OO_PS4_TOOLCHAIN)/link.x \
+           --eh-frame-hdr -L$(OO_PS4_TOOLCHAIN)/lib
+
+LIBS := -lc -lc++ -lkernel
+
+CRT := $(OO_PS4_TOOLCHAIN)/lib/crtlib.o
+
+all: $(TARGET).sprx
+
+main.o: main.cpp
+	$(CXX) $(CXXFLAGS) main.cpp -o main.o
+
+$(TARGET).oelf: main.o
+	$(LD) $(LDFLAGS) $(CRT) main.o $(LIBS) -o $(TARGET).oelf
+
+$(TARGET).sprx: $(TARGET).oelf
+	$(OO_PS4_TOOLCHAIN)/bin/linux/create-fself -in=$(TARGET).oelf \
+	  --out=$(TARGET).out --lib=$(TARGET).sprx --paid 0x3800000000000011
+
+clean:
+	rm -f *.o *.oelf *.out *.sprx
