@@ -12,16 +12,26 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang make cmake git build-essential gcc-multilib
+          sudo apt-get install -y clang make cmake git unzip
 
-      - name: Download OpenOrbis SDK
+      - name: Download OpenOrbis SDK (Release)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git clone https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain.git $HOME/OO_PS4_TOOLCHAIN
-          echo "OO_PS4_TOOLCHAIN=$HOME/OO_PS4_TOOLCHAIN" >> $GITHUB_ENV
+          mkdir -p $HOME/OO_PS4_TOOLCHAIN
+          cd $HOME/OO_PS4_TOOLCHAIN
+          
+          # Télécharge la dernière archive ZIP officielle pré-compilée
+          gh release download -R OpenOrbis/OpenOrbis-PS4-Toolchain --pattern "*.zip"
+          unzip *.zip
+          
+          # Cherche automatiquement le dossier exact contenant "include"
+          TOOL_PATH=$(find $PWD -type d -name "include" | head -n 1 | sed 's|/include||')
+          echo "OO_PS4_TOOLCHAIN=$TOOL_PATH" >> $GITHUB_ENV
 
       - name: Build SPRX
         run: |
-          make OO_PS4_TOOLCHAIN=$HOME/OO_PS4_TOOLCHAIN
+          make OO_PS4_TOOLCHAIN=$OO_PS4_TOOLCHAIN
 
       - name: Upload SPRX
         uses: actions/upload-artifact@v4
