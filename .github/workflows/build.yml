@@ -1,0 +1,31 @@
+name: Build PS4 SPRX
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang make cmake git
+
+      - name: Download OpenOrbis SDK
+        run: |
+          git clone https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain.git $HOME/OO_PS4_TOOLCHAIN
+          echo "OO_PS4_TOOLCHAIN=$HOME/OO_PS4_TOOLCHAIN" >> $GITHUB_ENV
+
+      - name: Build SPRX
+        run: |
+          export OO_PS4_TOOLCHAIN=$HOME/OO_PS4_TOOLCHAIN
+          make
+
+      - name: Upload SPRX
+        uses: actions/upload-artifact@v3
+        with:
+          name: mc_lan_proxy_sprx
+          path: mc_lan_proxy.sprx
