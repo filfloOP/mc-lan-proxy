@@ -12,17 +12,21 @@ CXXFLAGS := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables -O2 \
             -isystem $(OO_PS4_TOOLCHAIN)/include/c++/v1
 
 LDFLAGS := -m elf_x86_64 -pie --script $(OO_PS4_TOOLCHAIN)/link.x \
-           --eh-frame-hdr -L$(OO_PS4_TOOLCHAIN)/lib
+           --eh-frame-hdr --allow-multiple-definition \
+           -L$(OO_PS4_TOOLCHAIN)/lib
 
 LIBS := -lc -lc++ -lkernel
+
+CRT := $(OO_PS4_TOOLCHAIN)/lib/crtlib.o
 
 all: $(TARGET).sprx
 
 main.o: main.cpp
 	$(CXX) $(CXXFLAGS) main.cpp -o main.o
 
+# main.o AVANT crtlib.o : nos module_start/module_stop sont prioritaires
 $(TARGET).oelf: main.o
-	$(LD) $(LDFLAGS) main.o $(LIBS) -o $(TARGET).oelf
+	$(LD) $(LDFLAGS) main.o $(CRT) $(LIBS) -o $(TARGET).oelf
 
 $(TARGET).sprx: $(TARGET).oelf
 	$(OO_PS4_TOOLCHAIN)/bin/linux/create-fself -in=$(TARGET).oelf \
