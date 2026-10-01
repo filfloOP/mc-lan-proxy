@@ -12,18 +12,16 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang make cmake git unzip
+          sudo apt-get install -y clang make cmake git unzip wget
 
-      - name: Download OpenOrbis SDK (Release)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download OpenOrbis SDK (v0.5.2)
         run: |
           mkdir -p $HOME/OO_PS4_TOOLCHAIN
           cd $HOME/OO_PS4_TOOLCHAIN
           
-          # Télécharge la dernière archive ZIP officielle pré-compilée
-          gh release download -R OpenOrbis/OpenOrbis-PS4-Toolchain --pattern "*.zip"
-          unzip *.zip
+          # Télécharge directement la version 0.5.2 (lien fixe et sûr)
+          wget https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.2/OpenOrbis-PS4-Toolchain-v0.5.2.zip
+          unzip OpenOrbis-PS4-Toolchain-v0.5.2.zip
           
           # Cherche automatiquement le dossier exact contenant "include"
           TOOL_PATH=$(find $PWD -type d -name "include" | head -n 1 | sed 's|/include||')
