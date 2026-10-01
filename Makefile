@@ -16,15 +16,13 @@ LDFLAGS := -m elf_x86_64 -pie --script $(OO_PS4_TOOLCHAIN)/link.x \
 
 LIBS := -lc -lc++ -lkernel
 
-CRT := $(OO_PS4_TOOLCHAIN)/lib/crtlib.o
-
 all: $(TARGET).sprx
 
 main.o: main.cpp
 	$(CXX) $(CXXFLAGS) main.cpp -o main.o
 
 $(TARGET).oelf: main.o
-	$(LD) $(LDFLAGS) $(CRT) main.o $(LIBS) -o $(TARGET).oelf
+	$(LD) $(LDFLAGS) main.o $(LIBS) -o $(TARGET).oelf
 
 $(TARGET).sprx: $(TARGET).oelf
 	$(OO_PS4_TOOLCHAIN)/bin/linux/create-fself -in=$(TARGET).oelf \
