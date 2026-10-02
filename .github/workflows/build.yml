@@ -35,7 +35,7 @@ jobs:
           echo "== lib/*.o =="; ls $OO_PS4_TOOLCHAIN/lib/*.o
           echo "== symboles module_* dans les crt =="
           for f in $OO_PS4_TOOLCHAIN/lib/crt*.o; do echo "-- $f"; nm "$f" | grep -E "module_|_start|_init" || true; done
-          echo "== notification dans libkernel ? =="
+          echo "== libs reseau =="; ls $OO_PS4_TOOLCHAIN/lib | grep -i -E "net|kernel"; echo "== notification dans libkernel ? =="
           strings $OO_PS4_TOOLCHAIN/lib/libkernel*.so 2>/dev/null | grep -i "sceKernelSendNotificationRequest" || echo "ABSENT"
           echo "== outils =="; ls $OO_PS4_TOOLCHAIN/bin/linux
 
