@@ -80,8 +80,10 @@ static void log_line(const char* fmt, ...) {
 
 static void notify(const char* msg) {
     NotifyRequest r;
-    memset(&r, 0, sizeof(r));
-    strncpy(r.message, msg, sizeof(r.message) - 1);
+    char* p = (char*)&r;
+    for (size_t i = 0; i < sizeof(r); i++) p[i] = 0;   // pas de libc ici
+    size_t i = 0;
+    while (msg[i] && i < sizeof(r.message) - 1) { r.message[i] = msg[i]; i++; }
     sceKernelSendNotificationRequest(0, &r, sizeof(r), 0);
 }
 
@@ -341,12 +343,13 @@ static void* proxy_thread(void*) {
 }
 
 // ---------------------------------------------------------------- entree PRX
-extern "C" __attribute__((visibility("default"))) int module_start(size_t args, const void* argp) {
-    (void)args; (void)argp;
-    if (g_running) return 0;
+static void start_proxy() {
+    if (g_running) return;
+
+    notify("mc_lan_proxy: demarrage...");   // premiere ligne : prouve que le PRX tourne
 
     mkdir(CONFIG_DIR, 0777);
-    log_line("---- module_start ----");
+    log_line("---- start ----");
     load_ini();
     int ok = setup_sockets();
 
@@ -364,14 +367,37 @@ extern "C" __attribute__((visibility("default"))) int module_start(size_t args, 
         log_line("pthread_create a echoue");
         notify("mc_lan_proxy: erreur thread");
     }
+}
+
+static void stop_proxy() {
+    if (g_running) {
+        g_running = false;
+        pthread_join(g_thread, NULL);
+    }
+}
+
+// Points d'entree GoldHEN (plugin_load / plugin_unload)
+extern "C" __attribute__((visibility("default"))) int plugin_load(int argc, const char* argv[]) {
+    (void)argc; (void)argv;
+    start_proxy();
+    return 0;
+}
+
+extern "C" __attribute__((visibility("default"))) int plugin_unload(int argc, const char* argv[]) {
+    (void)argc; (void)argv;
+    stop_proxy();
+    return 0;
+}
+
+// Points d'entree PRX classiques (chargement direct par le systeme)
+extern "C" __attribute__((visibility("default"))) int module_start(size_t args, const void* argp) {
+    (void)args; (void)argp;
+    start_proxy();
     return 0;
 }
 
 extern "C" __attribute__((visibility("default"))) int module_stop(size_t args, const void* argp) {
     (void)args; (void)argp;
-    if (g_running) {
-        g_running = false;
-        pthread_join(g_thread, NULL);
-    }
+    stop_proxy();
     return 0;
 }
