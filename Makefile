@@ -15,7 +15,7 @@ LDFLAGS := -m elf_x86_64 -pie --script $(OO_PS4_TOOLCHAIN)/link.x \
            --eh-frame-hdr --allow-multiple-definition \
            -L$(OO_PS4_TOOLCHAIN)/lib
 
-LIBS := -lc -lc++ -lkernel
+LIBS := -lc -lc++ -lkernel -lSceNet
 
 # Utilise crtprx.o s'il existe, sinon crtlib.o
 CRT := $(firstword $(wildcard $(OO_PS4_TOOLCHAIN)/lib/crtprx.o $(OO_PS4_TOOLCHAIN)/lib/crtlib.o))
