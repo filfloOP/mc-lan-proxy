@@ -17,15 +17,17 @@ LDFLAGS := -m elf_x86_64 -pie --script $(OO_PS4_TOOLCHAIN)/link.x \
 
 LIBS := -lc -lc++ -lkernel
 
-CRT := $(OO_PS4_TOOLCHAIN)/lib/crtlib.o
+# Utilise crtprx.o s'il existe, sinon crtlib.o
+CRT := $(firstword $(wildcard $(OO_PS4_TOOLCHAIN)/lib/crtprx.o $(OO_PS4_TOOLCHAIN)/lib/crtlib.o))
 
 all: $(TARGET).sprx
 
 main.o: main.cpp
 	$(CXX) $(CXXFLAGS) main.cpp -o main.o
 
-# main.o AVANT crtlib.o : nos module_start/module_stop sont prioritaires
+# main.o AVANT le crt : nos module_start/module_stop sont prioritaires
 $(TARGET).oelf: main.o
+	@echo "CRT utilise : $(CRT)"
 	$(LD) $(LDFLAGS) main.o $(CRT) $(LIBS) -o $(TARGET).oelf
 
 $(TARGET).sprx: $(TARGET).oelf
