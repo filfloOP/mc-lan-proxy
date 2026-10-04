@@ -2,6 +2,9 @@ name: Build PS4 SPRX
 
 on: [push, workflow_dispatch]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,30 +23,25 @@ jobs:
           cd $HOME/OO_PS4_TOOLCHAIN
           URL=$(curl -sL https://api.github.com/repos/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/latest \
             | grep browser_download_url | grep -E '\.tar\.gz' | head -n 1 | cut -d '"' -f 4)
-          echo "URL: $URL"
           [ -n "$URL" ] || { echo "Aucune archive .tar.gz trouvee"; exit 1; }
           curl -sL "$URL" -o toolchain.tar.gz
           tar -xzf toolchain.tar.gz
           ROOT=$(dirname "$(find $PWD -type f -name link.x | head -n 1)")
-          echo "SDK root: $ROOT"
           chmod +x "$ROOT"/bin/linux/* || true
           echo "OO_PS4_TOOLCHAIN=$ROOT" >> $GITHUB_ENV
-
-      - name: Diagnostic SDK (informatif)
-        continue-on-error: true
-        run: |
-          echo "== lib/*.o =="; ls $OO_PS4_TOOLCHAIN/lib/*.o
-          echo "== symboles module_* dans les crt =="
-          for f in $OO_PS4_TOOLCHAIN/lib/crt*.o; do echo "-- $f"; nm "$f" | grep -E "module_|_start|_init" || true; done
-          echo "== libs reseau =="; ls $OO_PS4_TOOLCHAIN/lib | grep -i -E "net|kernel"; echo "== notification dans libkernel ? =="
-          strings $OO_PS4_TOOLCHAIN/lib/libkernel*.so 2>/dev/null | grep -i "sceKernelSendNotificationRequest" || echo "ABSENT"
-          echo "== outils =="; ls $OO_PS4_TOOLCHAIN/bin/linux
 
       - name: Build SPRX
         run: make
 
-      - name: Upload SPRX
-        uses: actions/upload-artifact@v4
-        with:
-          name: mc_lan_proxy_sprx
-          path: mc_lan_proxy.sprx
+      - name: Preparer le fichier .prx
+        run: cp mc_lan_proxy.sprx mc_lan_proxy.prx
+
+      - name: Publier la release "latest"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --cleanup-tag -y || true
+          gh release create latest mc_lan_proxy.prx \
+            --title "Dernier build" \
+            --notes "Build automatique du commit $GITHUB_SHA" \
+            --target $GITHUB_SHA
